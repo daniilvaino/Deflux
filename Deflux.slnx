@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Deflux.Core/Deflux.Core.csproj" />
+    <Project Path="src/Deflux.Ods/Deflux.Ods.csproj" />
+    <Project Path="src/Deflux.Xlsx/Deflux.Xlsx.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Deflux.Tests/Deflux.Tests.csproj" />
+  </Folder>
+  <Project Path="tests/ManualTest/ManualTest.csproj" Id="0f8f22b6-e67f-45c3-9956-3a0d0f328655" />
+</Solution>

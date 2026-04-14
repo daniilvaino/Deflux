@@ -1,0 +1,64 @@
+## .NET / C#
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+## NuGet
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*~
+
+## Build
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+bld/
+[Bb]uild[Ll]og.*
+*.dll
+*.exe
+*.pdb
+
+## OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+## Test artifacts
+tests/Deflux.Tests/bin/
+tests/Deflux.Tests/obj/
+tests/ManualTest/bin/
+tests/ManualTest/obj/
+gigatest.ods
+
+## SharpZipLib source (upstream reference, not part of build)
+sharpziplib/
+
+## Claude Code
+.claude/
+
+## .NET internals
+.dotnet_home/
+
+## LibreOffice lock files
+.~lock.*#
+
+## Test data / logs
+*.ods
+!tests/Deflux.Tests/**/*.ods
+gigatest_run.log
+
