@@ -58,7 +58,6 @@ sharpziplib/
 .~lock.*#
 
 ## Test data / logs
-*.ods
-!tests/Deflux.Tests/**/*.ods
 gigatest_run.log
+2500*.ods
 
