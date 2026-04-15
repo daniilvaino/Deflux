@@ -136,6 +136,40 @@ Stream
 
 Restore seeks the compressed stream to the saved position, rebuilds all state, and the next `Read()` continues transparently.
 
+### Checkpoint binary format
+
+```
+┌─────────┬─────────────┬──────────────┬──────────────────────────────┐
+│ version │ totalLength │ payloadCRC32 │           payload            │
+│  1 byte │   4 bytes   │   4 bytes    │         ~40-45 KB            │
+└─────────┴─────────────┴──────────────┴──────────────────────────────┘
+
+payload:
+  ┌─ Entry ID ──────────────────────────────────────────────────────┐
+  │  entryName (UTF-8, length-prefixed)                             │
+  │  entryCRC32 · compressedSize · adjustedCompressedOffset         │
+  ├─ DEFLATE state (section with length prefix) ────────────────────┤
+  │  mode · neededBits · repLength · repDist · uncomprLen           │
+  │  isLastBlock · totalOut · totalIn                               │
+  │  OutputWindow: byte[32768] + windowEnd + windowFilled           │
+  │  StreamManipulator: window + start/end + bitBuffer + bitsCount  │
+  │  Huffman trees: litlen[] + dist[] (null if static/inactive)     │
+  │  DynHeader state (if mid-dynamic block)                         │
+  │  Adler32 checksum · adjustedOffset · totalBytesFeeded           │
+  ├─ Pending decompressed bytes (0-8 KB) ───────────────────────────┤
+  ├─ XML parser state (section with length prefix) ─────────────────┤
+  │  parseState · depth · elementStack[] · namespaceBindings[]      │
+  │  pendingText · lineNumber · columnNumber · incompleteUTF8       │
+  └─────────────────────────────────────────────────────────────────┘
+
+Three-level verification on restore:
+  1. version ≠ expected  →  CheckpointVersionException
+  2. CRC-32 mismatch    →  CheckpointMismatchException (corrupted)
+  3. ZIP entry CRC/size  →  CheckpointMismatchException (file modified)
+```
+
+All values little-endian. `BinaryWriter`/`BinaryReader`, no external dependencies.
+
 ---
 
 ## Performance
@@ -152,14 +186,20 @@ Measured on a 76 MB ODS file (50 sheets, 1.25M rows, 6.7M cells):
 
 ---
 
-## Limitations (v1)
+## Limitations
 
-- UTF-8 only
-- No ZIP encryption
-- No async (sync-only)
-- No thread safety (single-threaded by design)
-- XLSX SharedStringsTable loaded fully into memory
-- No XLSX date/style detection (dates returned as serial floats)
+**By design:**
+- **UTF-8 only** — this covers 99%+ of real-world XLSX/ODS/EPUB/DOCX files. Supporting legacy encodings would add complexity with near-zero practical benefit.
+- **Sync-only** — the checkpoint model is inherently sequential (save state at point P, resume from P). Async would add overhead to every `Read()` call with no throughput gain, since the bottleneck is DEFLATE decompression which is CPU-bound.
+- **Single instance = single thread** — each reader instance is not thread-safe. However, multiple reader instances can safely work on the same file concurrently (each opens its own stream).
+
+**Currently not supported:**
+- No ZIP encryption support
+- No async overloads
+
+**XLSX-specific:**
+- SharedStringsTable is loaded fully into memory
+- No date/style detection — Excel stores dates as serial floats; parsing them requires `styles.xml`, which is not yet implemented. Raw float values are returned as-is.
 
 ---
 
