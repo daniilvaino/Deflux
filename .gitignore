@@ -60,5 +60,7 @@ sharpziplib/
 
 ## Test data / logs
 gigatest_run.log
+gigatest.ods
+benchmark.ods
 2500*.ods
 

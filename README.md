@@ -174,15 +174,23 @@ All values little-endian. `BinaryWriter`/`BinaryReader`, no external dependencie
 
 ## Performance
 
-Measured on a 76 MB ODS file (50 sheets, 1.25M rows, 6.7M cells):
+Benchmark on a **70 MB ODS file** (50 sheets, 1.25M rows, 6.7M cells).  
+Each library ran in a separate process for clean memory measurement (`PeakWorkingSet64`).
 
-| | |
+| Library | Read all rows | Need only sheet 50 | Peak memory |
+|---|---|---|---|
+| **Deflux** | **16.3 s** | **7.8 s** | **83 MB** |
+| OdsReaderWriter | 29.7 s | 29.7 s (must load all) | 7,037 MB |
+| Aspose.Cells | 22.7 s | 22.5 s (must load all) | 2,019 MB |
+
+DOM libraries (OdsReaderWriter, Aspose) must load the entire file into memory even if you only need one sheet. Deflux streams — `ScanSheets()` does one pass (~8s), then any `OpenSheet()` restores from a cached checkpoint in ~0.2s.
+
+| Deflux internals | |
 |---|---|
-| ScanSheets (50 sheets) | 9 s |
-| OpenSheet (checkpoint restore) | 0.2 s |
-| ReadRow throughput | ~125K rows/s |
 | Checkpoint size | ~45 KB |
-| Memory | < 1 MB steady state |
+| Checkpoint save | < 5 ms |
+| Checkpoint restore | < 50 ms |
+| Steady-state memory | < 1 MB |
 
 ---
 
