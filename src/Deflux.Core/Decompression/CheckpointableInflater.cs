@@ -310,12 +310,12 @@ internal class InflaterState
     public long TotalIn;
 
     // OutputWindow (~32KB)
-    public byte[] WindowData = null!;
+    public byte[] WindowData = Array.Empty<byte>();
     public int WindowEnd;
     public int WindowFilled;
 
     // StreamManipulator
-    public byte[] SmWindow = null!;
+    public byte[] SmWindow = Array.Empty<byte>();
     public int SmWindowStart;
     public int SmWindowEnd;
     public uint SmBuffer;

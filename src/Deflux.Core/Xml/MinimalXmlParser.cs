@@ -225,9 +225,12 @@ internal class MinimalXmlParser
         {
             _emitEndForEmpty = false;
             _depth--;
+            var frame = _elementStack[_elementStack.Count - 1];
             _nodeKind = XmlNodeKind.EndElement;
             _nodeDepth = _depth;
-            // _localName, _prefix, _namespaceUri already set from the Element
+            _localName = frame.LocalName;
+            _prefix = frame.Prefix;
+            _namespaceUri = frame.NamespaceUri;
             _value = null;
             _attributes.Clear();
             PopNamespaceScope(_depth);
