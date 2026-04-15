@@ -24,7 +24,7 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
     private ZipNavigator _zip;
     private ZipEntry _entry;
     private Stream _entryStream;
-    private CheckpointableInflater _inflater;
+    private CheckpointableInflater? _inflater;
     private MinimalXmlParser _parser;
     private bool _disposed;
 
@@ -47,11 +47,8 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
         _zip = new ZipNavigator(_zipStream);
         _entry = _zip.FindEntry(entryName);
 
-        if (_entry.Method == CompressionMethod.Stored)
-            throw new UnsupportedCompressionException(0);
-
         _entryStream = _zip.OpenEntryStream(_entry);
-        _inflater = new CheckpointableInflater();
+        _inflater = _entry.Method == CompressionMethod.Stored ? null : new CheckpointableInflater();
         _parser = new MinimalXmlParser();
     }
 
@@ -95,22 +92,38 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
             return true;
         }
 
-        if (_inflater.IsFinished)
+        if (_inflater != null)
         {
-            _parser.FeedEof();
-            return false;
-        }
+            if (_inflater.IsFinished)
+            {
+                _parser.FeedEof();
+                return false;
+            }
 
-        int decompressed = _inflater.Inflate(_entryStream, _inflateBuffer, 0, InflateBufferSize);
-        if (decompressed == 0)
+            int decompressed = _inflater.Inflate(_entryStream, _inflateBuffer, 0, InflateBufferSize);
+            if (decompressed == 0)
+            {
+                _parser.FeedEof();
+                return false;
+            }
+
+            _inflateBufferPos = decompressed;
+            _inflateBufferLen = decompressed;
+            _parser.Feed(_inflateBuffer.AsSpan(0, decompressed));
+        }
+        else
         {
-            _parser.FeedEof();
-            return false;
-        }
+            int bytesRead = _entryStream.Read(_inflateBuffer, 0, InflateBufferSize);
+            if (bytesRead == 0)
+            {
+                _parser.FeedEof();
+                return false;
+            }
 
-        _inflateBufferPos = decompressed;
-        _inflateBufferLen = decompressed;
-        _parser.Feed(_inflateBuffer.AsSpan(0, decompressed));
+            _inflateBufferPos = bytesRead;
+            _inflateBufferLen = bytesRead;
+            _parser.Feed(_inflateBuffer.AsSpan(0, bytesRead));
+        }
         return true;
     }
 
@@ -186,7 +199,7 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
         if (NodeKind == XmlNodeKind.None)
             throw new InvalidOperationException("SaveCheckpoint must be called on a node boundary (after Read())");
 
-        var deflateState = _inflater.SaveState();
+        var deflateState = _inflater?.SaveState() ?? new InflaterState();
         var xmlState = _parser.SaveState();
 
         // Pending = inflate buffer remainder + parser unconsumed chars (re-encoded to UTF-8)
@@ -221,7 +234,7 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
             EntryName = _entryName,
             EntryCrc32 = _entry.Crc32,
             EntryCompressedSize = _entry.CompressedSize,
-            AdjustedCompressedOffset = deflateState.AdjustedCompressedOffset,
+            AdjustedCompressedOffset = _inflater != null ? deflateState.AdjustedCompressedOffset : _entryStream.Position,
             DeflateState = deflateState,
             PendingDecompressedBytes = pending,
             XmlState = xmlState,
@@ -255,13 +268,17 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
 
         _entryStream = _zip.OpenEntryStream(_entry);
 
-        // Restore DEFLATE
-        _inflater = new CheckpointableInflater();
-        _inflater.RestoreState(cp.DeflateState);
-        // StreamManipulator state already contains the unread compressed tail from the
-        // last fed chunk. Seeking to AdjustedCompressedOffset would replay that tail and
-        // corrupt DEFLATE state on large restores; continue from the original stream head.
-        _entryStream.Seek(cp.DeflateState.TotalBytesFeeded, SeekOrigin.Begin);
+        if (_entry.Method == CompressionMethod.Stored)
+        {
+            _inflater = null;
+            _entryStream.Seek(cp.AdjustedCompressedOffset, SeekOrigin.Begin);
+        }
+        else
+        {
+            _inflater = new CheckpointableInflater();
+            _inflater.RestoreState(cp.DeflateState);
+            _entryStream.Seek(cp.DeflateState.TotalBytesFeeded, SeekOrigin.Begin);
+        }
 
         // Restore XML parser
         _parser = new MinimalXmlParser();
