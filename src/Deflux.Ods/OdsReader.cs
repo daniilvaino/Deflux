@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Deflux.Core;
+using Deflux.Core.Exceptions;
 using Deflux.Core.Reader;
 
 namespace Deflux.Ods;
@@ -36,6 +37,11 @@ public class OdsReader : IDisposable, ICheckpointable
             throw new ArgumentException("Stream must be seekable", nameof(stream));
     }
 
+    private void ThrowIfDisposed()
+    {
+        if (_disposed) throw new ObjectDisposedException(nameof(OdsReader));
+    }
+
     // ── Sheet discovery ──
 
     /// <summary>
@@ -46,6 +52,7 @@ public class OdsReader : IDisposable, ICheckpointable
     /// </summary>
     public IReadOnlyList<SheetInfo> ScanSheets(Action<int, string>? onSheetFound = null)
     {
+        ThrowIfDisposed();
         if (_sheets != null)
             return _sheets;
 
@@ -114,10 +121,8 @@ public class OdsReader : IDisposable, ICheckpointable
             _currentRowIndex = 0;
             return;
         }
-        catch
-        {
-            // Checkpoint restore failed — fallback to sequential scan + skip
-        }
+        catch (CheckpointMismatchException) { }
+        catch (CheckpointVersionException) { }
 
         // Fallback: re-read from start, skip to target sheet
         _reader?.Dispose();
@@ -151,6 +156,7 @@ public class OdsReader : IDisposable, ICheckpointable
     /// </summary>
     public bool ReadRow(out Row row)
     {
+        ThrowIfDisposed();
         row = default;
         if (_reader == null || !_sheetOpened)
             throw new InvalidOperationException("No sheet opened. Call OpenSheet() first.");
@@ -187,6 +193,7 @@ public class OdsReader : IDisposable, ICheckpointable
 
     public byte[] SaveCheckpoint()
     {
+        ThrowIfDisposed();
         if (_reader == null)
             throw new InvalidOperationException("No sheet opened");
         byte[] inner = _reader.SaveCheckpoint();
@@ -198,13 +205,12 @@ public class OdsReader : IDisposable, ICheckpointable
 
     public void RestoreCheckpoint(byte[] data)
     {
+        ThrowIfDisposed();
         if (data == null || data.Length < 4)
             throw new ArgumentException("Invalid ODS checkpoint data", nameof(data));
-
         _currentRowIndex = BitConverter.ToInt32(data, 0);
         byte[] inner = new byte[data.Length - 4];
         Array.Copy(data, 4, inner, 0, inner.Length);
-
         _reader?.Dispose();
         _reader = new CheckpointableXmlReader(_stream, "content.xml");
         _reader.RestoreCheckpoint(inner);

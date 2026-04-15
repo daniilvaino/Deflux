@@ -22,7 +22,7 @@ internal class StreamManipulator
     {
         if (bitsInBuffer_ < bitCount)
         {
-            if (windowStart_ == windowEnd_)
+            if (windowStart_ + 1 >= windowEnd_)
                 return -1;
 
             buffer_ |= (uint)((window_[windowStart_++] & 0xff |

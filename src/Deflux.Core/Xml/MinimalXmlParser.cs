@@ -931,6 +931,12 @@ internal class MinimalXmlParser
         var frame = _elementStack[_elementStack.Count - 1];
         _elementStack.RemoveAt(_elementStack.Count - 1);
 
+        string endTagFull = _nameBuffer.ToString();
+        int colonPos = endTagFull.IndexOf(':');
+        string endLocalName = colonPos >= 0 ? endTagFull.Substring(colonPos + 1) : endTagFull;
+        if (endLocalName != frame.LocalName)
+            throw new XmlParseException($"End tag '</{endTagFull}>' does not match start tag '<{(frame.Prefix != null ? frame.Prefix + ":" : "")}{frame.LocalName}>'");
+
         _nodeKind = XmlNodeKind.EndElement;
         _nodeDepth = _depth;
         _localName = frame.LocalName;
@@ -1190,6 +1196,7 @@ internal class MinimalXmlParser
             ColumnNumber = _columnNumber,
             BomSkipped = _bomSkipped,
             XmlDeclParsed = _xmlDeclParsed,
+            EmitEndForEmpty = _emitEndForEmpty,
         };
     }
 
@@ -1223,7 +1230,7 @@ internal class MinimalXmlParser
         _feedStart = 0;
         _feedEnd = 0;
         _entityBuffer.Clear();
-        _emitEndForEmpty = false;
+        _emitEndForEmpty = state.EmitEndForEmpty;
         _nodeKind = XmlNodeKind.None;
         _attributes.Clear();
     }
@@ -1244,4 +1251,5 @@ internal class XmlParserState
     public int ColumnNumber;
     public bool BomSkipped;
     public bool XmlDeclParsed;
+    public bool EmitEndForEmpty;
 }

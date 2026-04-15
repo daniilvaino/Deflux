@@ -68,10 +68,16 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
     public string? GetAttribute(string localName) => _parser.GetAttribute(localName);
     public string? GetAttribute(string localName, string ns) => _parser.GetAttribute(localName, ns);
 
+    private void ThrowIfDisposed()
+    {
+        if (_disposed) throw new ObjectDisposedException(nameof(CheckpointableXmlReader));
+    }
+
     // ── Forward-only reading ──
 
     public bool Read()
     {
+        ThrowIfDisposed();
         while (true)
         {
             if (_parser.Read())
@@ -183,6 +189,7 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
     /// </summary>
     public byte[] SaveCheckpoint()
     {
+        ThrowIfDisposed();
         if (NodeKind == XmlNodeKind.None)
             throw new InvalidOperationException("SaveCheckpoint must be called on a node boundary (after Read())");
 
@@ -237,6 +244,7 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
     /// </summary>
     public void RestoreCheckpoint(byte[] data)
     {
+        ThrowIfDisposed();
         var cp = CheckpointSerializer.Deserialize(data);
 
         if (cp.EntryName != _entryName)
@@ -252,6 +260,15 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
                 cp.EntryCrc32, _entry.Crc32);
         if (_entry.CompressedSize != cp.EntryCompressedSize)
             throw new CheckpointMismatchException("File modified: compressed size mismatch");
+
+        if (cp.DeflateState.TotalBytesFeeded < 0 || cp.DeflateState.TotalBytesFeeded > _entry.CompressedSize)
+            throw new CheckpointMismatchException("Invalid DEFLATE offset in checkpoint");
+        if (cp.DeflateState.WindowData.Length != Decompression.OutputWindow.WindowSize)
+            throw new CheckpointMismatchException("Invalid output window size in checkpoint");
+        if (cp.XmlState.Depth < 0 || cp.XmlState.Depth > 10_000)
+            throw new CheckpointMismatchException("Invalid XML depth in checkpoint");
+        if (cp.XmlState.ElementStack.Length > 10_000)
+            throw new CheckpointMismatchException("Element stack too large in checkpoint");
 
         _entryStream = _zip.OpenEntryStream(_entry);
 
