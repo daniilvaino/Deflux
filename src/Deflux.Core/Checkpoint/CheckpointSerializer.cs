@@ -271,6 +271,7 @@ internal static class CheckpointSerializer
         // Flags
         bw.Write(s.BomSkipped);
         bw.Write(s.XmlDeclParsed);
+        bw.Write(s.EmitEndForEmpty);
 
         // Fill section length
         long sectionEnd = bw.BaseStream.Position;
@@ -283,6 +284,7 @@ internal static class CheckpointSerializer
     private static XmlParserState ReadXmlState(BinaryReader br)
     {
         uint sectionLen = br.ReadUInt32();
+        long sectionStart = br.BaseStream.Position;
 
         var s = new XmlParserState();
         s.CurrentState = (ParseState)br.ReadByte();
@@ -328,6 +330,10 @@ internal static class CheckpointSerializer
         // Flags
         s.BomSkipped = br.ReadBoolean();
         s.XmlDeclParsed = br.ReadBoolean();
+
+        // EmitEndForEmpty — added later; read only if section has remaining bytes
+        if (br.BaseStream.Position - sectionStart < sectionLen)
+            s.EmitEndForEmpty = br.ReadBoolean();
 
         return s;
     }
