@@ -19,16 +19,16 @@ public static class TestFixtures
         return TempDir;
     }
 
-    /// <summary>
-    /// Creates a ZIP file containing a single XML entry.
-    /// </summary>
     public static string CreateSimpleZipWithXml(string entryName, string xmlContent)
+        => CreateSimpleZipWithXml(entryName, xmlContent, CompressionLevel.Optimal);
+
+    public static string CreateSimpleZipWithXml(string entryName, string xmlContent, CompressionLevel level)
     {
         var dir = EnsureTempDir();
         var path = Path.Combine(dir, $"test-{Guid.NewGuid():N}.zip");
         using var fs = new FileStream(path, FileMode.Create);
         using var archive = new ZipArchive(fs, ZipArchiveMode.Create);
-        var entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+        var entry = archive.CreateEntry(entryName, level);
         using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
         writer.Write(xmlContent);
         return path;
