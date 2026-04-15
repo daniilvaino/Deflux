@@ -4,7 +4,20 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <PackageId>Deflux.Core</PackageId>
+    <Description>Streaming XML-from-ZIP engine with serializable checkpoints. DEFLATE decompressor + XML parser + checkpoint serializer.</Description>
+    <Authors>Daniil Vaino</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/daniilvaino/Deflux</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/daniilvaino/Deflux</RepositoryUrl>
+    <PackageTags>deflux;zip;deflate;xml;streaming;checkpoint;resume</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="ManualTest" />

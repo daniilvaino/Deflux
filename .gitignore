@@ -10,6 +10,7 @@ obj/
 ## NuGet
 *.nupkg
 *.snupkg
+nupkgs/
 project.lock.json
 project.fragment.lock.json
 artifacts/

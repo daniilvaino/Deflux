@@ -1,0 +1,62 @@
+name: Publish NuGet
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version (e.g. 1.0.0)'
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Test
+        run: dotnet test -c Release --no-build --verbosity minimal
+
+      - name: Pack Deflux.Core
+        run: dotnet pack src/Deflux.Core/Deflux.Core.csproj -c Release --no-build -p:PackageVersion=${{ steps.version.outputs.version }} -o ./nupkgs
+
+      - name: Pack Deflux.Xlsx
+        run: dotnet pack src/Deflux.Xlsx/Deflux.Xlsx.csproj -c Release --no-build -p:PackageVersion=${{ steps.version.outputs.version }} -o ./nupkgs
+
+      - name: Pack Deflux.Ods
+        run: dotnet pack src/Deflux.Ods/Deflux.Ods.csproj -c Release --no-build -p:PackageVersion=${{ steps.version.outputs.version }} -o ./nupkgs
+
+      - name: List packages
+        run: ls -la ./nupkgs/
+
+      - name: Push to NuGet.org
+        run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

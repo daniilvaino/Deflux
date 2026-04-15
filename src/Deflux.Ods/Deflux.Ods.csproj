@@ -8,6 +8,19 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <PackageId>Deflux.Ods</PackageId>
+    <Description>Streaming ODS reader with checkpoint support. Depends on Deflux.Core.</Description>
+    <Authors>Daniil Vaino</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/daniilvaino/Deflux</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/daniilvaino/Deflux</RepositoryUrl>
+    <PackageTags>deflux;ods;opendocument;spreadsheet;streaming;checkpoint</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>
