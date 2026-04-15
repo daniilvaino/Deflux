@@ -189,14 +189,25 @@ public class OdsReader : IDisposable, ICheckpointable
     {
         if (_reader == null)
             throw new InvalidOperationException("No sheet opened");
-        return _reader.SaveCheckpoint();
+        byte[] inner = _reader.SaveCheckpoint();
+        byte[] result = new byte[4 + inner.Length];
+        BitConverter.TryWriteBytes(result.AsSpan(0), _currentRowIndex);
+        Array.Copy(inner, 0, result, 4, inner.Length);
+        return result;
     }
 
     public void RestoreCheckpoint(byte[] data)
     {
+        if (data == null || data.Length < 4)
+            throw new ArgumentException("Invalid ODS checkpoint data", nameof(data));
+
+        _currentRowIndex = BitConverter.ToInt32(data, 0);
+        byte[] inner = new byte[data.Length - 4];
+        Array.Copy(data, 4, inner, 0, inner.Length);
+
         _reader?.Dispose();
         _reader = new CheckpointableXmlReader(_stream, "content.xml");
-        _reader.RestoreCheckpoint(data);
+        _reader.RestoreCheckpoint(inner);
         _sheetOpened = true;
     }
 
