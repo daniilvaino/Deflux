@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Deflux.Core;
+using Deflux.Core.Exceptions;
 using Deflux.Core.Reader;
 
 namespace Deflux.Ods;
@@ -114,10 +115,8 @@ public class OdsReader : IDisposable, ICheckpointable
             _currentRowIndex = 0;
             return;
         }
-        catch
-        {
-            // Checkpoint restore failed — fallback to sequential scan + skip
-        }
+        catch (CheckpointMismatchException) { }
+        catch (CheckpointVersionException) { }
 
         // Fallback: re-read from start, skip to target sheet
         _reader?.Dispose();
