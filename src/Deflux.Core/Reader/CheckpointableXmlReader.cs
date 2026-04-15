@@ -253,6 +253,15 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
         if (_entry.CompressedSize != cp.EntryCompressedSize)
             throw new CheckpointMismatchException("File modified: compressed size mismatch");
 
+        if (cp.DeflateState.TotalBytesFeeded < 0 || cp.DeflateState.TotalBytesFeeded > _entry.CompressedSize)
+            throw new CheckpointMismatchException("Invalid DEFLATE offset in checkpoint");
+        if (cp.DeflateState.WindowData.Length != Decompression.OutputWindow.WindowSize)
+            throw new CheckpointMismatchException("Invalid output window size in checkpoint");
+        if (cp.XmlState.Depth < 0 || cp.XmlState.Depth > 10_000)
+            throw new CheckpointMismatchException("Invalid XML depth in checkpoint");
+        if (cp.XmlState.ElementStack.Length > 10_000)
+            throw new CheckpointMismatchException("Element stack too large in checkpoint");
+
         _entryStream = _zip.OpenEntryStream(_entry);
 
         // Restore DEFLATE
