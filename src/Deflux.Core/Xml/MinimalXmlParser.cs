@@ -1196,6 +1196,7 @@ internal class MinimalXmlParser
             ColumnNumber = _columnNumber,
             BomSkipped = _bomSkipped,
             XmlDeclParsed = _xmlDeclParsed,
+            EmitEndForEmpty = _emitEndForEmpty,
         };
     }
 
@@ -1229,7 +1230,7 @@ internal class MinimalXmlParser
         _feedStart = 0;
         _feedEnd = 0;
         _entityBuffer.Clear();
-        _emitEndForEmpty = false;
+        _emitEndForEmpty = state.EmitEndForEmpty;
         _nodeKind = XmlNodeKind.None;
         _attributes.Clear();
     }
@@ -1250,4 +1251,5 @@ internal class XmlParserState
     public int ColumnNumber;
     public bool BomSkipped;
     public bool XmlDeclParsed;
+    public bool EmitEndForEmpty;
 }
