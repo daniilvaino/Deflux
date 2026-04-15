@@ -22,6 +22,7 @@ public class OdsReader : IDisposable, ICheckpointable
     private const string OfficeNs = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
 
     private readonly Stream _stream;
+    private readonly List<Cell> _cellBuffer = new();
     private CheckpointableXmlReader? _reader;
 
     private List<SheetInfo>? _sheets;
@@ -221,7 +222,8 @@ public class OdsReader : IDisposable, ICheckpointable
 
     private List<Cell> ParseRowCells()
     {
-        var cells = new List<Cell>();
+        _cellBuffer.Clear();
+        var cells = _cellBuffer;
         int colIndex = 0;
         int rowDepth = _reader!.Depth;
 
