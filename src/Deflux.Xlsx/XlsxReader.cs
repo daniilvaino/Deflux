@@ -36,10 +36,16 @@ public class XlsxReader : IDisposable, ICheckpointable
         LoadSharedStrings();
     }
 
+    private void ThrowIfDisposed()
+    {
+        if (_disposed) throw new ObjectDisposedException(nameof(XlsxReader));
+    }
+
     public IReadOnlyList<string> GetSheetNames() => _sheetNames;
 
     public void OpenSheet(string sheetName)
     {
+        ThrowIfDisposed();
         int idx = _sheetNames.IndexOf(sheetName);
         if (idx < 0)
             throw new ArgumentException($"Sheet not found: {sheetName}");
@@ -48,6 +54,7 @@ public class XlsxReader : IDisposable, ICheckpointable
 
     public void OpenSheet(int index)
     {
+        ThrowIfDisposed();
         if (index < 0 || index >= _sheetNames.Count)
             throw new ArgumentOutOfRangeException(nameof(index));
 
@@ -59,6 +66,7 @@ public class XlsxReader : IDisposable, ICheckpointable
 
     public bool ReadRow(out Row row)
     {
+        ThrowIfDisposed();
         row = default;
         if (_reader == null)
             throw new InvalidOperationException("No sheet opened. Call OpenSheet() first.");
@@ -80,6 +88,7 @@ public class XlsxReader : IDisposable, ICheckpointable
 
     public byte[] SaveCheckpoint()
     {
+        ThrowIfDisposed();
         if (_reader == null)
             throw new InvalidOperationException("No sheet opened");
         return _reader.SaveCheckpoint();
@@ -87,6 +96,7 @@ public class XlsxReader : IDisposable, ICheckpointable
 
     public void RestoreCheckpoint(byte[] data)
     {
+        ThrowIfDisposed();
         // Re-read metadata from same stream
         _zip = new ZipNavigator(_stream);
         LoadWorkbookMetadata();

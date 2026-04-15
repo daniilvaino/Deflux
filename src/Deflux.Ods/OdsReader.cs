@@ -37,6 +37,11 @@ public class OdsReader : IDisposable, ICheckpointable
             throw new ArgumentException("Stream must be seekable", nameof(stream));
     }
 
+    private void ThrowIfDisposed()
+    {
+        if (_disposed) throw new ObjectDisposedException(nameof(OdsReader));
+    }
+
     // ── Sheet discovery ──
 
     /// <summary>
@@ -47,6 +52,7 @@ public class OdsReader : IDisposable, ICheckpointable
     /// </summary>
     public IReadOnlyList<SheetInfo> ScanSheets(Action<int, string>? onSheetFound = null)
     {
+        ThrowIfDisposed();
         if (_sheets != null)
             return _sheets;
 
@@ -150,6 +156,7 @@ public class OdsReader : IDisposable, ICheckpointable
     /// </summary>
     public bool ReadRow(out Row row)
     {
+        ThrowIfDisposed();
         row = default;
         if (_reader == null || !_sheetOpened)
             throw new InvalidOperationException("No sheet opened. Call OpenSheet() first.");
@@ -186,6 +193,7 @@ public class OdsReader : IDisposable, ICheckpointable
 
     public byte[] SaveCheckpoint()
     {
+        ThrowIfDisposed();
         if (_reader == null)
             throw new InvalidOperationException("No sheet opened");
         return _reader.SaveCheckpoint();
@@ -193,6 +201,7 @@ public class OdsReader : IDisposable, ICheckpointable
 
     public void RestoreCheckpoint(byte[] data)
     {
+        ThrowIfDisposed();
         _reader?.Dispose();
         _reader = new CheckpointableXmlReader(_stream, "content.xml");
         _reader.RestoreCheckpoint(data);

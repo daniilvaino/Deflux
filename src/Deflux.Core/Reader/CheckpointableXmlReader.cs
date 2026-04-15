@@ -68,10 +68,16 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
     public string? GetAttribute(string localName) => _parser.GetAttribute(localName);
     public string? GetAttribute(string localName, string ns) => _parser.GetAttribute(localName, ns);
 
+    private void ThrowIfDisposed()
+    {
+        if (_disposed) throw new ObjectDisposedException(nameof(CheckpointableXmlReader));
+    }
+
     // ── Forward-only reading ──
 
     public bool Read()
     {
+        ThrowIfDisposed();
         while (true)
         {
             if (_parser.Read())
@@ -183,6 +189,7 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
     /// </summary>
     public byte[] SaveCheckpoint()
     {
+        ThrowIfDisposed();
         if (NodeKind == XmlNodeKind.None)
             throw new InvalidOperationException("SaveCheckpoint must be called on a node boundary (after Read())");
 
@@ -237,6 +244,7 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
     /// </summary>
     public void RestoreCheckpoint(byte[] data)
     {
+        ThrowIfDisposed();
         var cp = CheckpointSerializer.Deserialize(data);
 
         if (cp.EntryName != _entryName)
