@@ -47,7 +47,9 @@ internal sealed class SubStream : Stream
         if (count > remaining)
             count = (int)remaining;
 
-        _baseStream.Seek(_start + _position, SeekOrigin.Begin);
+        long expectedPos = _start + _position;
+        if (_baseStream.Position != expectedPos)
+            _baseStream.Seek(expectedPos, SeekOrigin.Begin);
         int read = _baseStream.Read(buffer, offset, count);
         _position += read;
         return read;

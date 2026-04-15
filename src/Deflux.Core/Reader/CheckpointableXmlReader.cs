@@ -209,27 +209,18 @@ public class CheckpointableXmlReader : IDisposable, ICheckpointable
         var deflateState = _inflater?.SaveState() ?? new InflaterState();
         var xmlState = _parser.SaveState();
 
-        // Pending = inflate buffer remainder + parser unconsumed chars (re-encoded to UTF-8)
-        byte[] inflateUnconsumed;
-        int inflateRemaining = _inflateBufferLen - _inflateBufferPos;
-        if (inflateRemaining > 0)
-        {
-            inflateUnconsumed = new byte[inflateRemaining];
-            Array.Copy(_inflateBuffer, _inflateBufferPos, inflateUnconsumed, 0, inflateRemaining);
-        }
-        else
-        {
-            inflateUnconsumed = Array.Empty<byte>();
-        }
-
         byte[] parserUnconsumed = _parser.GetUnconsumedBytes();
+        int inflateRemaining = _inflateBufferLen - _inflateBufferPos;
+        int totalPending = parserUnconsumed.Length + inflateRemaining;
 
         byte[] pending;
-        if (parserUnconsumed.Length > 0 || inflateUnconsumed.Length > 0)
+        if (totalPending > 0)
         {
-            pending = new byte[parserUnconsumed.Length + inflateUnconsumed.Length];
-            Array.Copy(parserUnconsumed, 0, pending, 0, parserUnconsumed.Length);
-            Array.Copy(inflateUnconsumed, 0, pending, parserUnconsumed.Length, inflateUnconsumed.Length);
+            pending = new byte[totalPending];
+            if (parserUnconsumed.Length > 0)
+                Array.Copy(parserUnconsumed, 0, pending, 0, parserUnconsumed.Length);
+            if (inflateRemaining > 0)
+                Array.Copy(_inflateBuffer, _inflateBufferPos, pending, parserUnconsumed.Length, inflateRemaining);
         }
         else
         {

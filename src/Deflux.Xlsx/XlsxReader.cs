@@ -21,6 +21,7 @@ public class XlsxReader : IDisposable, ICheckpointable
     private List<string> _sheetPaths = null!;
     private string[] _sharedStrings = null!;
 
+    private readonly List<Cell> _cellBuffer = new();
     private CheckpointableXmlReader? _reader;
     private string? _currentSheetEntry;
     private bool _disposed;
@@ -116,17 +117,17 @@ public class XlsxReader : IDisposable, ICheckpointable
         string? rowRef = _reader!.GetAttribute("r");
         int rowIndex = rowRef != null ? int.Parse(rowRef) - 1 : 0;
 
-        var cells = new List<Cell>();
+        _cellBuffer.Clear();
 
         while (_reader.Read())
         {
             if (_reader.NodeKind == XmlNodeKind.EndElement && _reader.LocalName == "row")
                 break;
             if (_reader.NodeKind == XmlNodeKind.Element && _reader.LocalName == "c")
-                cells.Add(ParseCell());
+                _cellBuffer.Add(ParseCell());
         }
 
-        return new Row(rowIndex, cells.ToArray());
+        return new Row(rowIndex, _cellBuffer.ToArray());
     }
 
     private Cell ParseCell()
