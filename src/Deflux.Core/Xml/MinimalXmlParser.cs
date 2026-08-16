@@ -1163,12 +1163,13 @@ internal class MinimalXmlParser
             ? System.Text.Encoding.UTF8.GetBytes(_charBuffer, _charStart, unconsumedChars)
             : Array.Empty<byte>();
 
-        // Prepend incomplete UTF-8 bytes
+        // The incomplete UTF-8 tail is the LAST thing consumed from the stream,
+        // so it must follow the re-encoded unconsumed chars, not precede them.
         if (_incompleteUtf8Len > 0)
         {
-            byte[] result = new byte[_incompleteUtf8Len + charBytes.Length];
-            Array.Copy(_incompleteUtf8, 0, result, 0, _incompleteUtf8Len);
-            Array.Copy(charBytes, 0, result, _incompleteUtf8Len, charBytes.Length);
+            byte[] result = new byte[charBytes.Length + _incompleteUtf8Len];
+            Array.Copy(charBytes, 0, result, 0, charBytes.Length);
+            Array.Copy(_incompleteUtf8, 0, result, charBytes.Length, _incompleteUtf8Len);
             return result;
         }
 
@@ -1218,9 +1219,10 @@ internal class MinimalXmlParser
         if (state.PendingText != null)
             _buffer.Append(state.PendingText);
 
-        _incompleteUtf8Len = state.IncompleteUtf8.Length;
-        if (_incompleteUtf8Len > 0)
-            Array.Copy(state.IncompleteUtf8, 0, _incompleteUtf8, 0, _incompleteUtf8Len);
+        // The incomplete tail is not restored here: those bytes are already part of
+        // PendingDecompressedBytes and arrive via Feed(), which re-establishes
+        // _incompleteUtf8 naturally. Restoring it would double-count them.
+        _incompleteUtf8Len = 0;
 
         _lineNumber = state.LineNumber;
         _columnNumber = state.ColumnNumber;
